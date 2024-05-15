@@ -75,61 +75,32 @@ class PhillipsIntellivue:
         '''
         
         # start with Beginning of Frame byte
-        packet = bytearray()
-        bof = bytearray(b'\0xc0')
-        # add bof to packet
-        packet.extend(bof)
+        bof = bytearray(b'\xc0')
+
         
         # build transport header
-        protocol_id = bytearray(b'\0x11')
-        msg_type = bytearray(b'\0x01')
-        
+        protocol_id = bytearray(b'\x11')
+        msg_type = bytearray(b'\x01')
         length = len(user_data)
-        lenb1 = (length & 0xFF00) >> 8
-        lenb2 = length & 0x00FF
         print(f'Length: {length}')
-        lenb1 =  hex(lenb1)
-        lenb2 = hex(lenb2)
-        lenb1 = bytearray(lenb1, 'utf-8')
-        lenb2 = bytearray(lenb2, 'utf-8')
-        print(f'lenb1: {lenb1}')
-        print(f'lenb2: {lenb2}')
-        length_array = bytearray()
-        length_array.extend(lenb1)
-        length_array.extend(lenb2)
-        print(f'length_array: {length_array}')
-        
-        transport_hdr = bytearray()
-        transport_hdr.extend(protocol_id)
-        transport_hdr.extend(msg_type)
-        transport_hdr.extend(length_array)
-        packet.extend(transport_hdr)
-        
-        #append user data to packet
-        packet.extend(user_data)
-        
+        len_bytes = length.to_bytes(2, byteorder ='big')
+        print(f'Length: {len_bytes.hex()}')
+ 
+        transport_hdr = protocol_id + msg_type + len_bytes
         
         # compute CRC using CRC-CCCIT algorithm
-        crc_input = bytearray()
-        crc_input.extend(transport_hdr)
-        crc_input.extend(user_data)
-        
+        crc_input = transport_hdr + user_data
         fcs = self.crc_ccit(crc_input)
         print(f"fcs: {fcs}")
-        fcs_b1 = (fcs & 0xFF00) >> 8
-        fcs_b2 = fcs & 0x00FF
-        fcs_b1 = bytearray(hex(fcs_b1), 'utf-8')
-        fcs_b2 = bytearray(hex(fcs_b2), 'utf-8')
         
-        packet.extend(fcs_b1)
-        packet.extend(fcs_b2)
-        
-        
+        fcs_bytes = fcs.to_bytes(2, byteorder ='big')
+        print(f'fcs_bytes: {fcs_bytes.hex()}')
         
         # append End of Frame to complete packet
-        eof = bytearray(b'0xc1')
+        eof = bytearray(b'\xc1')
         
-        packet.extend(eof)
+        # combine all of the elements into a single packet
+        packet = bof + transport_hdr + user_data + fcs_bytes + eof
         
         return packet
         
@@ -140,10 +111,10 @@ class PhillipsIntellivue:
         # default association request
         user_data =bytearray(b'\x0d\xff\x01\x28\x05\x08\x13\x01\x00\x16\x01\x02\x80\x00\x14\x02\x00\x02\xc1\xff\x01\x16\x31\x80\xa0\x80\x80\x01\x01\x00\x00\xa2\x80\xa0\x03\x00\x00\x01\xa4\x80\x30\x80\x02\x01\x01\x06\x04\x52\x01\x00\x01\x30\x80\x06\x02\x51\x01\x00\x00\x00\x00\x30\x80\x02\x01\x02\x06\x0c\x2a\x86\x48\xce\x14\x02\x01\x00\x00\x00\x01\x01\x30\x80\x06\x0c\x2a\x86\x48\xce\x14\x02\x01\x00\x00\x00\x02\x01\x00\x00\x00\x00\x00\x00\x61\x80\x30\x80\x02\x01\x01\xa0\x80\x60\x80\xa1\x80\x06\x0c\x2a\x86\x48\xce\x14\x02\x01\x00\x00\x00\x03\x01\x00\x00\xbe\x80\x28\x80\x06\x0c\x2a\x86\x48\xce\x14\x02\x01\x00\x00\x00\x01\x01\x02\x01\x02\x81\x82\x00\x80\x80\x00\x00\x00\x40\x00\x00\x00\x00\x00\x00\x00\x80\x00\x00\x00\x20\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x64\x00\x01\x00\x28\x80\x00\x00\x00\x00\x00\x0f\xa0\x00\x00\x05\xb0\x00\x00\x05\xb0\xff\xff\xff\xff\x60\x00\x00\x00\x00\x01\x00\x0c\xf0\x01\x00\x08\x8e\x00\x00\x00\x00\x00\x00\x00\x01\x02\x00\x34\x00\x06\x00\x30\x00\x01\x00\x21\x00\x00\x00\x01\x00\x01\x00\x06\x00\x00\x00\xc9\x00\x01\x00\x09\x00\x00\x00\x3c\x00\x01\x00\x05\x00\x00\x00\x10\x00\x01\x00\x2a\x00\x00\x00\x01\x00\x01\x00\x36\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
 
-        print(f'User Data {user_data}')
+        print(f'User Data {user_data.hex()}')
         assoc_request = self.create_packet(user_data)
         
-        print(f'Association Request Packet: {assoc_request}')
+        print(f'Association Request Packet: {assoc_request.hex()}')
         
         
         return assoc_request
